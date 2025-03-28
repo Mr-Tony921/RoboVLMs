@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 
-conda activate robovlm
+# conda activate robovlm
 
 CUR_DIR=$(cd $(dirname $0); pwd)
 # sudo chmod 777 -R ./

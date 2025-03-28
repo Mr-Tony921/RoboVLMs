@@ -13,3 +13,6 @@ __all__ = [
     "DiskCalvinDataset",
     "OpenVLADataset",
 ]
+
+from .lab_dataset import LabDataset
+__all__.append("LabDataset")
