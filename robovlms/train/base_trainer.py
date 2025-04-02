@@ -425,6 +425,7 @@ class BaseTrainer(pl.LightningModule):
             action_chunck = action_chunck.cuda()
             arm_action_chunck = action_chunck[..., :6]
             gripper_action_chunck = action_chunck[..., -1]
+            gripper_action_chunck = (gripper_action_chunck + 1.0) / 2
 
         if isinstance(rgb, torch.Tensor):
             rgb = rgb[:, :seq_len]

@@ -36,8 +36,8 @@ from robovlms.data.data_utils import (
 from typing import Callable
 
 # need to update when change lab dataset
-act_q01 = torch.tensor([-0.02011626958847046, -0.03565273433923721, -0.051451683044433594, -0.08641761541366577, -0.0785830169916153, -0.13047923147678375, 0.0])
-act_q99 = torch.tensor([0.04943045973777771, 0.047858498990535736, 0.037282660603523254, 0.08626393973827362, 0.07809782773256302, 0.18406374752521515, 1.0])
+act_q01 = torch.tensor([-0.17068496346473694, -0.48603615164756775, -0.3842267096042633, -1.3859463930130005, -0.5719267725944519, -0.8082495927810669, 0.0])
+act_q99 = torch.tensor([0.22278088331222534, 0.3536017835140228, 0.18314868211746216, 0.9175939559936523, 0.5724627375602722, 0.9862034916877747, 1.0])
 
 @torch.no_grad()
 def get_pose_cam(world2cam, pose1):
@@ -117,7 +117,7 @@ class LabDataset(Dataset):
         data_path,
         window_size=16,
         fwd_pred_next_n=10,
-        norm_action=True,
+        norm=True,
         traj_per_episode=1,
         # traj_length=10, # fwd_pred_next_n + window_size
         stride=1,
@@ -137,7 +137,7 @@ class LabDataset(Dataset):
         self.fwd_pred_next_n = fwd_pred_next_n
         self.traj_per_episode = traj_per_episode
         self.traj_length = fwd_pred_next_n + window_size
-        self.norm_action = norm_action
+        self.norm = norm
         self.obs_n_frames = self.traj_length
 
         self.include_target = include_target
@@ -450,7 +450,8 @@ class LabDataset(Dataset):
                 for s in sample
             ]
         )  # (4, 1, 26, 7) (bs, traj_per_episode, fwd_pred_next_n + window_size, action_dim)
-        if self.norm_action:
+        if self.norm:
+            action_tensors = torch.clamp(action_tensors, min=act_q01, max=act_q99)
             action_tensors = 2 * (action_tensors - act_q01) / (act_q99 - act_q01) - 1
         action_tensors = action_tensors.squeeze(1)  # (4, 26, 7)
         action_chunck = generate_chunck_data(action_tensors, self.window_size, self.fwd_pred_next_n) # (4, 16, 10, 7)
@@ -528,6 +529,8 @@ class DataInfo:
 
 def main():
     print("begin!", flush=True)
+    torch.set_printoptions(precision=6, sci_mode=False)
+    np.set_printoptions(precision=6, suppress=True)
 
     import json, functools
     from robovlms.train.base_trainer import BaseTrainer
@@ -547,14 +550,15 @@ def main():
         data_path="/mnt/afs/share_data/duanhaonan/datasets/lab_dataset/LabData_L1_807",
         image_fn=image_fn,
         tokenizer=model.model.tokenizer,
-        window_size=16,
-        fwd_pred_next_n=10,
-        stride=1,
+        window_size=1,
+        fwd_pred_next_n=1,
+        stride=4,
         include_target=1,
         remove_small_diff=True,
         cache_in_memory=True,
-        norm_action=False,
-        traj_per_episode=1,
+        norm=False,
+        traj_per_episode=16,
+        is_training=True,
     )    
 
     dataloader = DataLoader(
@@ -568,7 +572,7 @@ def main():
 
     total_iter_num = 0
     action_list = []
-    for ii in range(100):
+    for ii in range(200):
         for i, batch in enumerate(dataloader):
             action_list.append(batch['action'].flatten(0,-2).cpu().numpy())
 

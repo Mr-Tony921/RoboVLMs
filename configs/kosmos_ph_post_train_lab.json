@@ -114,7 +114,7 @@
         "use_distributed_sampler": false,
         "log_every_n_steps": 10,
         "max_epochs": 1000,
-        "val_check_interval": 50000,
+        "val_check_interval": 10000,
         "check_val_every_n_epoch": null,
         "max_steps": 100000,
         "accumulate_grad_batches": 1,
@@ -127,7 +127,7 @@
         "remove_small_diff": true,
         "cache_in_memory": false,
         "stride": 1,
-        "norm_action": true,
+        "norm": true,
         "is_training": true
     },
     "val_dataset": {
@@ -137,7 +137,7 @@
         "remove_small_diff": true,
         "cache_in_memory": false,
         "stride": 1,
-        "norm_action": true,
+        "norm": true,
         "is_training": false
     },
     "raw_config_path": "configs/kosmos/oxe_post_train/finetune_kosmos_cont-lstm-post_full-ft_text_vision_wd=0_hist=16_act=10_use-hand_aug-shift_act-norm_lr-1e-5_bs-128_warm-0_oxe-pre_bridge.json",
