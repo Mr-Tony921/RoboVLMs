@@ -77,7 +77,7 @@ class BaseRoboVLM(nn.Module):
                 # os.path.join(
                 #     self.configs["vlm"]["pretrained_model_name_or_path"], "config.json"
                 # ),
-                "/mnt/afs/share_data/tongronglei/work/RoboVLMs/configs/kosmos_backbone_config.json",
+                "configs/kosmos_backbone_config.json",
                 "r",
             )
         )

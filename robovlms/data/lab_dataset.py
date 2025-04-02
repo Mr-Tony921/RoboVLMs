@@ -35,6 +35,10 @@ from robovlms.data.data_utils import (
 
 from typing import Callable
 
+# need to update when change lab dataset
+act_q01 = torch.tensor([-0.02011626958847046, -0.03565273433923721, -0.051451683044433594, -0.08641761541366577, -0.0785830169916153, -0.13047923147678375, 0.0])
+act_q99 = torch.tensor([0.04943045973777771, 0.047858498990535736, 0.037282660603523254, 0.08626393973827362, 0.07809782773256302, 0.18406374752521515, 1.0])
+
 @torch.no_grad()
 def get_pose_cam(world2cam, pose1):
     rot_mat1 = quaternion_to_matrix(pose1[3:])
@@ -114,40 +118,38 @@ class LabDataset(Dataset):
         window_size=16,
         fwd_pred_next_n=10,
         norm_action=True,
-        # traj_per_episode=26,
-        # traj_length=10,
+        traj_per_episode=1,
+        # traj_length=10, # fwd_pred_next_n + window_size
         stride=1,
         data_cam_list=None,
-        obs_n_frames=1,
+        # obs_n_frames=1, # window_size
         include_target=0,
         out_size=224,
         remove_small_diff=False,
         cache_in_memory=False,
-        data_aug=False,
         task_type="lab_action",
         model_name="kosmos",
+        is_training=True,
         **kwargs,
     ):
         self.data_path = data_path
         self.window_size = window_size
         self.fwd_pred_next_n = fwd_pred_next_n
-        self.traj_per_episode = window_size + fwd_pred_next_n
-        self.traj_length = fwd_pred_next_n
+        self.traj_per_episode = traj_per_episode
+        self.traj_length = fwd_pred_next_n + window_size
         self.norm_action = norm_action
-        self.obs_n_frames = obs_n_frames                                                                                                                                 
+        self.obs_n_frames = self.traj_length
+
         self.include_target = include_target
         self.stride = stride
         self.remove_small_diff = remove_small_diff
         self.cache_in_memory = cache_in_memory
         self.task_type = task_type
+        self.is_training = is_training
 
         self.image_fn = image_fn
         self.tokenizer = tokenizer
         self.text_fn = get_text_function(self.tokenizer, model_name)
-
-        # need to update when change lab dataset
-        self.act_q01 = torch.tensor([-0.086, -0.249, -0.178, -0.539, -0.283, -0.468, 0.0])
-        self.act_q99 = torch.tensor([0.137, 0.175, 0.164, 0.332, 0.276, 0.553, 1.0])
 
         print('remove_small_diff', remove_small_diff)
 
@@ -164,20 +166,6 @@ class LabDataset(Dataset):
             ]
         )
 
-        if data_aug:
-            self.data_transform1 = torchvision.transforms.Compose(
-                [
-                    torchvision.transforms.ColorJitter(brightness=0.3, contrast=[0.7, 1.3], saturation=[0.7, 1.3], hue=0.07),
-                    torchvision.transforms.Normalize(IMAGENET_DEFAULT_MEAN, IMAGENET_DEFAULT_STD),
-                ]
-            )
-        else:
-            self.data_transform1 = torchvision.transforms.Compose(
-                [
-                    torchvision.transforms.Normalize(IMAGENET_DEFAULT_MEAN, IMAGENET_DEFAULT_STD),
-                ]
-            )
-
         self.cache_data = {}
         # self._preload_data_into_cache()
 
@@ -190,6 +178,8 @@ class LabDataset(Dataset):
                 print(f"PRELOAD DATA {i} done!", flush = True)
 
     def __len__(self):
+        if self.is_training:
+            return len(self.data_cam_list) * 100
         return len(self.data_cam_list)
 
     @torch.no_grad()
@@ -219,6 +209,9 @@ class LabDataset(Dataset):
             start_frame = np.random.permutation(np.arange(max(steps - 2*1, 1), steps-1, 1))
         if len(start_frame) < self.traj_per_episode:
             start_frame = np.random.choice(start_frame, self.traj_per_episode, replace=True)
+
+        if not self.is_training:
+            start_frame = np.concatenate([np.arange(steps),np.arange(steps),np.arange(steps),np.arange(steps),np.arange(steps),np.arange(steps),np.arange(steps),np.arange(steps),np.arange(steps),np.arange(steps),np.arange(steps),np.arange(steps)], axis=0)[:self.traj_per_episode] - self.obs_n_frames + 1
 
         gripper_change_list = [0]
         for i in range(1, steps):
@@ -251,7 +244,7 @@ class LabDataset(Dataset):
                 observation['current_frame_idx'] = torch.tensor(current_frame_idx)
 
                 if j < self.obs_n_frames:
-                    if current_frame_idx < steps:                        
+                    if current_frame_idx < steps:
                         observation["image"] = episode["steps"][current_frame_idx]["observation"]["exterior_image_1_left"]
                     else:
                         observation["image"] = np.zeros_like(traj["observation"]['image'][-1])
@@ -345,12 +338,6 @@ class LabDataset(Dataset):
                     tmp_img_inp = np.transpose(aaa, (1,2,0,3)).reshape(aaa.shape[1], aaa.shape[2], aaa.shape[0]*aaa.shape[3])
                     tmp_img_inp = self.data_transform(tmp_img_inp)
                     tmp_img_inp = tmp_img_inp.reshape(aaa.shape[0], aaa.shape[3], tmp_img_inp.shape[1], tmp_img_inp.shape[2])
-
-                    # L C H W
-                    t_shape = tmp_img_inp.shape
-
-                    tmp_img_inp = self.data_transform1(tmp_img_inp.permute(1,2,0,3).flatten(2,3))
-                    tmp_img_inp = tmp_img_inp.reshape(t_shape[1], t_shape[2], t_shape[0], t_shape[3]).permute(2,0,1,3)
                     traj["observation"]['image'] = tmp_img_inp
 
                 for k in action.keys():
@@ -450,7 +437,7 @@ class LabDataset(Dataset):
         return data_pkl
 
     def collater(self, sample):
-        action_chunck = torch.stack(
+        action_tensors = torch.stack(
             [
                 torch.cat(
                     [
@@ -462,21 +449,23 @@ class LabDataset(Dataset):
                 )
                 for s in sample
             ]
-        )
+        )  # (4, 1, 26, 7) (bs, traj_per_episode, fwd_pred_next_n + window_size, action_dim)
         if self.norm_action:
-            action_chunck = 2 * (action_chunck - self.act_q01) / (self.act_q99 - self.act_q01) - 1
-        action_chunck = action_chunck[:, : self.window_size]
+            action_tensors = 2 * (action_tensors - act_q01) / (act_q99 - act_q01) - 1
+        action_tensors = action_tensors.squeeze(1)  # (4, 26, 7)
+        action_chunck = generate_chunck_data(action_tensors, self.window_size, self.fwd_pred_next_n) # (4, 16, 10, 7)
+        action_tensors = action_tensors[:, : self.window_size] # (4, 16, 7)
 
-        action_mask = torch.stack([s["action"]["terminate_episode"] for s in sample])
-        action_mask = (~torch.all(action_mask == torch.tensor([1, 0, 0]), dim=-1))
-        action_mask = action_mask[:, : self.window_size]
+        action_mask = torch.stack([s["action"]["terminate_episode"] for s in sample]) # (4, 1, 26, 3)
+        action_mask = action_mask.squeeze(1)  # (4, 26, 3)
+        action_mask = (~torch.all(action_mask == torch.tensor([1, 0, 0]), dim=-1)) # (4, 26)
+        action_mask = generate_chunck_data(action_mask, self.window_size, self.fwd_pred_next_n) # (4, 16, 10)
 
-        action_tensors = action_chunck[:, :, 0]
-
-        images = torch.stack([s["observation"]["image"].squeeze() for s in sample])
+        images = torch.stack([s["observation"]["image"] for s in sample]) # (4, 1, 26, 3, 224, 224)
+        images = images.squeeze(1) # (4, 26, 3, 224, 224)
         B, T, C, H, W = images.shape
         image_list = [
-            Image.fromarray(images[b, t].permute(1, 2, 0).byte().numpy())
+            Image.fromarray((images[b, t] * 255).clamp(0, 255).permute(1, 2, 0).byte().numpy())
             for b in range(B) for t in range(T)
         ]
         image_tensors = self.image_fn(image_list).view(B, T, C, H, W)
@@ -560,18 +549,17 @@ def main():
         tokenizer=model.model.tokenizer,
         window_size=16,
         fwd_pred_next_n=10,
-        stride=4,
+        stride=1,
         include_target=1,
-        obs_n_frames=1,
         remove_small_diff=True,
         cache_in_memory=True,
-        data_aug=True,
         norm_action=False,
+        traj_per_episode=1,
     )    
 
     dataloader = DataLoader(
         dataset,
-        batch_size=8,
+        batch_size=4,
         collate_fn=dataset.collater,
         drop_last=True,
         shuffle=True,

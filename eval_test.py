@@ -8,11 +8,11 @@ from robovlms.data.data_utils import preprocess_image
 from robovlms.data.data_utils import get_text_function
 
 np.set_printoptions(precision=3)
-act_q01 = np.array([-0.086, -0.249, -0.178, -0.539, -0.283, -0.468, 0.0])
-act_q99 = np.array([0.137, 0.175, 0.164, 0.332, 0.276, 0.553, 1.0])
+act_q01 = np.array([-0.02011626958847046, -0.03565273433923721, -0.051451683044433594, -0.08641761541366577, -0.0785830169916153, -0.13047923147678375, 0.0])
+act_q99 = np.array([0.04943045973777771, 0.047858498990535736, 0.037282660603523254, 0.08626393973827362, 0.07809782773256302, 0.18406374752521515, 1.0])
 
 configs = json.load(open('configs/kosmos_ph_post_train_lab.json', 'r'))
-pretrained_path = 'runs/checkpoints/oxe_post_train/kosmos/kosmos/lab_sft/2025-03-27/20-14/epoch=684-step=50000.pt'
+pretrained_path = '/mnt/afs/share_data/tongronglei/work/RoboVLMs/runs/checkpoints/oxe_post_train/kosmos/kosmos/lab_sft/2025-04-01/21-48/epoch=27-step=50000.pt'
 
 if os.path.isdir(pretrained_path):
     target_ckpt_path = pretrained_path.replace(".ckpt", ".pt")
@@ -62,7 +62,7 @@ for step in range(200):
     with torch.no_grad():
         action_chunk = model.inference_step(input_dict)["action"]
 
-    action_chunk = torch.cat([action_chunk[0], 2*(action_chunk[1]>0.2).float()-1], dim=-1)
+    action_chunk = torch.cat([action_chunk[0], 2*(torch.nn.functional.sigmoid(action_chunk[1])>0.5).float()-1], dim=-1)
     action = action_chunk.select(dim=-2, index=0).squeeze().cpu().numpy()
 
     if configs['train_dataset']['norm_action']:

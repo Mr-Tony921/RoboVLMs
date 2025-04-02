@@ -114,9 +114,9 @@
         "use_distributed_sampler": false,
         "log_every_n_steps": 10,
         "max_epochs": 1000,
-        "val_check_interval": 10000,
+        "val_check_interval": 50000,
         "check_val_every_n_epoch": null,
-        "max_steps": 50000,
+        "max_steps": 100000,
         "accumulate_grad_batches": 1,
         "limit_val_batches": 100
     },
@@ -124,19 +124,21 @@
         "type": "LabDataset",
         "data_path": "/mnt/afs/share_data/duanhaonan/datasets/lab_dataset/LabData_L1_807",
         "model_name": "kosmos",
-        "data_aug": true,
         "remove_small_diff": true,
-        "cache_in_memory": true,
-        "stride": 4,
-        "norm_action": true
+        "cache_in_memory": false,
+        "stride": 1,
+        "norm_action": true,
+        "is_training": true
     },
     "val_dataset": {
         "type": "LabDataset",
         "data_path": "/mnt/afs/share_data/duanhaonan/datasets/lab_dataset/LabData_L1_807",
         "model_name": "kosmos",
         "remove_small_diff": true,
-        "cache_in_memory": true,
-        "stride": 4
+        "cache_in_memory": false,
+        "stride": 1,
+        "norm_action": true,
+        "is_training": false
     },
     "raw_config_path": "configs/kosmos/oxe_post_train/finetune_kosmos_cont-lstm-post_full-ft_text_vision_wd=0_hist=16_act=10_use-hand_aug-shift_act-norm_lr-1e-5_bs-128_warm-0_oxe-pre_bridge.json",
     "config": "configs/kosmos/oxe_post_train/finetune_kosmos_cont-lstm-post_full-ft_text_vision_wd=0_hist=16_act=10_use-hand_aug-shift_act-norm_lr-1e-5_bs-128_warm-0_oxe-pre_bridge.json",
