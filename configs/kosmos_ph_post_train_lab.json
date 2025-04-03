@@ -126,7 +126,7 @@
         "model_name": "kosmos",
         "remove_small_diff": true,
         "cache_in_memory": false,
-        "stride": 1,
+        "stride": 4,
         "norm": true,
         "is_training": true
     },
@@ -136,7 +136,7 @@
         "model_name": "kosmos",
         "remove_small_diff": true,
         "cache_in_memory": false,
-        "stride": 1,
+        "stride": 4,
         "norm": true,
         "is_training": false
     },

@@ -151,7 +151,15 @@ class LabDataset(Dataset):
         self.tokenizer = tokenizer
         self.text_fn = get_text_function(self.tokenizer, model_name)
 
-        print('remove_small_diff', remove_small_diff)
+        print('data_path', self.data_path)
+        print('window_size', self.window_size)
+        print('fwd_pred_next_n', self.fwd_pred_next_n)
+        print('traj_per_episode', self.traj_per_episode)
+        print('norm', self.norm)
+        print('include_target', self.include_target)
+        print('stride', self.stride)
+        print('remove_small_diff', self.remove_small_diff)
+        print('is_training', self.is_training)
 
         if data_cam_list:
             self.data_cam_list = pickle.load(open(data_cam_list, "rb"))
@@ -588,86 +596,5 @@ def main():
 
     print("finish!", flush=True)
 
-def main_ori():
-    print("begin!", flush=True)
-    tokenizer_config = {
-        "type": "AutoProcessor",
-        "pretrained_model_name_or_path": "microsoft/kosmos-2-patch14-224",
-        "tokenizer_type": "kosmos",
-        "max_text_len": 256,
-    }
-    tokenizer = build_tokenizer(tokenizer_config)
-    dataset = LabDataset(
-        data_path="/mnt/afs/share_data/duanhaonan/datasets/lab_dataset/LabData_L1_807",
-        tokenizer=tokenizer,
-        traj_per_episode=16,
-        traj_length=10,
-        stride=4,
-        include_target=1,
-        obs_n_frames=1,
-        remove_small_diff=True,
-        cache_in_memory=True,
-    )    
-
-    wv_min = torch.ones(3) * 1000
-    wv_max = torch.ones(3) * -1000
-    rt_min = torch.ones(4) * 1000
-    rt_max = torch.ones(4) * -1000
-    pose_min = torch.ones(6) * 1000
-    pose_max = torch.ones(6) * -1000
-    dataloader = DataLoader(dataset, batch_size=8, shuffle=True, num_workers=8)
-
-    total_iter_num = 0
-    action_list = []
-    proprio_list = []
-    for ii in range(100):
-        for i, batch in enumerate(dataloader):
-            import ipdb;ipdb.set_trace()
-            proprio_list.append(torch.cat([batch['action']['state_pose'], 
-                                           batch["action"]["gripper_closedness_action"]], dim=-1).flatten(0, 2).cpu().numpy())
-            action_list.append(torch.cat([batch["action"]["world_vector"].flatten(0, 2), batch["action"]["rotation_delta"].flatten(0, 2),
-                                          batch["action"]["gripper_closedness_action"].flatten(0, 2)], dim=-1).cpu().numpy())
-            wv_min = torch.minimum(
-                    wv_min, batch["action"]["world_vector"].amin(dim=(0, 1, 2))
-                )
-            wv_max = torch.maximum(
-                wv_max, batch["action"]["world_vector"].amax(dim=(0, 1, 2))
-                )
-            # rt_min = torch.minimum(
-            #     rt_min, batch["action"]["rotation_delta"].amin(dim=(0, 1, 2))
-            #     )
-            # rt_max = torch.maximum(
-            #     rt_max, batch["action"]["rotation_delta"].amax(dim=(0, 1, 2))
-            #     )
-            if total_iter_num % 50 == 0:
-
-                print('act min', np.min(np.concatenate(action_list), axis=0).tolist(), flush=True)
-                print('act max', np.max(np.concatenate(action_list), axis=0).tolist(), flush=True)
-                print('act low', np.quantile(np.concatenate(action_list), 0.01, axis=0).tolist(), flush=True)
-                print('act high', np.quantile(np.concatenate(action_list), 0.99, axis=0).tolist(), flush=True)
-                print('act mean', np.mean(np.concatenate(action_list), axis=0).tolist(), flush=True)
-                print('act std', np.std(np.concatenate(action_list), axis=0).tolist(), flush=True)
-
-                print('prio min', np.min(np.concatenate(proprio_list), axis=0).tolist(), flush=True)
-                print('prio max', np.max(np.concatenate(proprio_list), axis=0).tolist(), flush=True)
-                print('prio low', np.quantile(np.concatenate(proprio_list), 0.01, axis=0).tolist(), flush=True)
-                print('prio high', np.quantile(np.concatenate(proprio_list), 0.99, axis=0).tolist(), flush=True)
-                print('prio mean', np.mean(np.concatenate(proprio_list), axis=0).tolist(), flush=True)
-                print('prio std', np.std(np.concatenate(proprio_list), axis=0).tolist(), flush=True)
-                
-                print("wv_min: ", wv_min, flush = True)
-                print("wv_max: ", wv_max, flush = True)
-                # print("rt_min: ", rt_min, flush = True)
-                # print("rt_max: ", rt_max, flush = True)
-
-            total_iter_num += 1
-
-    print("wv_min: ", wv_min)
-    print("wv_max: ", wv_max)
-    # print("rt_min: ", rt_min)
-    # print("rt_max: ", rt_max)
-    print("finish!", flush=True)
-
 if __name__ == "__main__":
-    # main_ori()
     main()
