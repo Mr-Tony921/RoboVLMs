@@ -122,7 +122,7 @@
     },
     "train_dataset": {
         "type": "LabDataset",
-        "data_path": "/mnt/afs/share_data/duanhaonan/datasets/lab_dataset/LabData_L1_807",
+        "data_path": "/mnt/petrelfs/zhangtianyi1/LabData_L1_807",
         "model_name": "kosmos",
         "remove_small_diff": true,
         "cache_in_memory": false,
@@ -132,7 +132,7 @@
     },
     "val_dataset": {
         "type": "LabDataset",
-        "data_path": "/mnt/afs/share_data/duanhaonan/datasets/lab_dataset/LabData_L1_807",
+        "data_path": "/mnt/petrelfs/zhangtianyi1/LabData_L1_807",
         "model_name": "kosmos",
         "remove_small_diff": true,
         "cache_in_memory": false,

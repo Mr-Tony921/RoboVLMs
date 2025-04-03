@@ -12,7 +12,7 @@ act_q01 = np.array([-0.17068496346473694, -0.48603615164756775, -0.3842267096042
 act_q99 = np.array([0.22278088331222534, 0.3536017835140228, 0.18314868211746216, 0.9175939559936523, 0.5724627375602722, 0.9862034916877747, 1.0])
 
 configs = json.load(open('configs/kosmos_ph_post_train_lab.json', 'r'))
-pretrained_path = '/mnt/afs/share_data/tongronglei/work/RoboVLMs/runs/checkpoints/oxe_post_train/kosmos/kosmos/lab_sft/2025-04-02/19-33/robovlm_step_100000_20250403.pt'
+pretrained_path = 'checkpoints/robovlm_step_100000_20250403.pt'
 
 if os.path.isdir(pretrained_path):
     target_ckpt_path = pretrained_path.replace(".ckpt", ".pt")
@@ -37,7 +37,7 @@ image_fn = functools.partial(
 )
 text_fn = get_text_function(model.model.tokenizer, configs["model"])
 
-pkl_path = "/mnt/afs/share_data/duanhaonan/datasets/lab_dataset/LabData_L1_807/20250312193259_pour the water into the cup in the human hand.pkl"
+pkl_path = "/mnt/petrelfs/zhangtianyi1/LabData_L1_807/20250312193259_pour the water into the cup in the human hand.pkl"
 import pickle
 import torchvision.transforms as transforms
 transform = transforms.Compose([
