@@ -36,8 +36,20 @@ from robovlms.data.data_utils import (
 from typing import Callable
 
 # need to update when change lab dataset
-act_q01 = torch.tensor([-0.17068496346473694, -0.48603615164756775, -0.3842267096042633, -1.3859463930130005, -0.5719267725944519, -0.8082495927810669, 0.0])
-act_q99 = torch.tensor([0.22278088331222534, 0.3536017835140228, 0.18314868211746216, 0.9175939559936523, 0.5724627375602722, 0.9862034916877747, 1.0])
+act_q01 = torch.tensor([-0.08000017702579498,
+            -0.20688602328300476,
+            -0.16130231320858002,
+            -0.5491514801979065,
+            -0.2616570293903351,
+            -0.44785112142562866,
+            0.0])
+act_q99 = torch.tensor([0.12800641357898712,
+            0.17082400619983673,
+            0.1557823121547699,
+            0.3282812535762787,
+            0.2638643980026245,
+            0.5106926560401917,
+            1.0])
 
 @torch.no_grad()
 def get_pose_cam(world2cam, pose1):
@@ -555,7 +567,7 @@ def main():
     )
 
     dataset = LabDataset(
-        data_path="/mnt/afs/share_data/duanhaonan/datasets/lab_dataset/LabData_L1_807",
+        data_path="/mnt/afs/share_data/xuyuan2/nips_pkl",
         image_fn=image_fn,
         tokenizer=model.model.tokenizer,
         window_size=1,

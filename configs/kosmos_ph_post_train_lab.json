@@ -114,7 +114,7 @@
         "use_distributed_sampler": false,
         "log_every_n_steps": 10,
         "max_epochs": 1000,
-        "val_check_interval": 10000,
+        "val_check_interval": 50000,
         "check_val_every_n_epoch": null,
         "max_steps": 100000,
         "accumulate_grad_batches": 1,
@@ -122,7 +122,7 @@
     },
     "train_dataset": {
         "type": "LabDataset",
-        "data_path": "/mnt/afs/share_data/duanhaonan/datasets/lab_dataset/LabData_L1_807",
+        "data_path": "/mnt/afs/share_data/xuyuan2/nips_pkl",
         "model_name": "kosmos",
         "remove_small_diff": true,
         "cache_in_memory": false,

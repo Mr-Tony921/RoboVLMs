@@ -8,11 +8,23 @@ from robovlms.data.data_utils import preprocess_image
 from robovlms.data.data_utils import get_text_function
 
 np.set_printoptions(precision=3, suppress=True)
-act_q01 = np.array([-0.17068496346473694, -0.48603615164756775, -0.3842267096042633, -1.3859463930130005, -0.5719267725944519, -0.8082495927810669, 0.0])
-act_q99 = np.array([0.22278088331222534, 0.3536017835140228, 0.18314868211746216, 0.9175939559936523, 0.5724627375602722, 0.9862034916877747, 1.0])
+act_q01 = np.array([-0.08000017702579498,
+            -0.20688602328300476,
+            -0.16130231320858002,
+            -0.5491514801979065,
+            -0.2616570293903351,
+            -0.44785112142562866,
+            0.0])
+act_q99 = np.array([0.12800641357898712,
+            0.17082400619983673,
+            0.1557823121547699,
+            0.3282812535762787,
+            0.2638643980026245,
+            0.5106926560401917,
+            1.0])
 
 configs = json.load(open('configs/kosmos_ph_post_train_lab.json', 'r'))
-pretrained_path = '/mnt/afs/share_data/tongronglei/work/RoboVLMs/runs/checkpoints/oxe_post_train/kosmos/kosmos/lab_sft/2025-04-02/19-33/robovlm_step_100000_20250403.pt'
+pretrained_path = '/mnt/afs/share_data/tongronglei/work/RoboVLMs/runs/checkpoints/oxe_post_train/kosmos/kosmos/lab_sft/2025-04-10/19-34/epoch=57-step=100000.ckpt'
 
 if os.path.isdir(pretrained_path):
     target_ckpt_path = pretrained_path.replace(".ckpt", ".pt")
@@ -81,6 +93,8 @@ for image in frames:
 
     with torch.no_grad():
         action_chunk = model.inference_step(input_dict)["action"]
+
+    # import ipdb;ipdb.set_trace()
 
     action_chunk = torch.cat([action_chunk[0], 2*(torch.nn.functional.sigmoid(action_chunk[1])>0.5).float()-1], dim=-1)
     action = action_chunk.select(dim=-3, index=0).select(dim=-2, index=0).squeeze().cpu().numpy()
