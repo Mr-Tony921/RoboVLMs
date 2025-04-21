@@ -24,7 +24,7 @@ act_q99 = np.array([0.12800641357898712,
             1.0])
 
 configs = json.load(open('configs/kosmos_ph_post_train_lab.json', 'r'))
-pretrained_path = '/mnt/afs/share_data/tongronglei/work/RoboVLMs/runs/checkpoints/oxe_post_train/kosmos/kosmos/lab_sft/2025-04-10/19-34/epoch=57-step=100000.ckpt'
+pretrained_path = '/mnt/afs/share_data/tongronglei/work/RoboVLMs/runs/checkpoints/oxe_post_train/kosmos/kosmos/lab_sft/2025-04-14/15-13/epoch=28-step=100000.ckpt'
 
 if os.path.isdir(pretrained_path):
     target_ckpt_path = pretrained_path.replace(".ckpt", ".pt")
@@ -49,7 +49,7 @@ image_fn = functools.partial(
 )
 text_fn = get_text_function(model.model.tokenizer, configs["model"])
 
-pkl_path = "/mnt/afs/share_data/duanhaonan/datasets/lab_dataset/LabData_L1_807/20250312193259_pour the water into the cup in the human hand.pkl"
+pkl_path = "/mnt/afs/share_data/xuyuan2/nips_pkl/20250409170732_pick up the carrot into the the box.pkl"
 import pickle
 import torchvision.transforms as transforms
 transform = transforms.Compose([
@@ -58,20 +58,25 @@ transform = transforms.Compose([
 ])
 data_pkl = pickle.load(open(pkl_path, 'rb'))
 frames = []
+wrists = []
 for step in data_pkl["steps"]:
     img = step["observation"]["exterior_image_1_left"]
     img = Image.fromarray(img)
     img = transform(img)
     frames.append(img)
+    wrist = step["observation"]["exterior_image_1_wrist"]
+    wrist = Image.fromarray(wrist)
+    wrist = transform(wrist)
+    wrists.append(wrist)
 
-prompt = "pour the water into the cup in the human hand"
+prompt = "pick up the carrot into the the box.pkl"
 prompt = f"In: What action should the robot take to {prompt.lower()}?\nOut:"
 text_tensor, attention_mask = text_fn([prompt])
 
 # from collections import deque
 # images = deque(maxlen=configs['window_size'])
 
-for image in frames:
+for image, wrist in zip(frames, wrists):
     input_dict = dict()
 
     # images.append(image)
@@ -82,10 +87,10 @@ for image in frames:
     input_dict["text"] = text_tensor
     input_dict['text_mask'] = attention_mask
 
-    ### if wrist camera is available
+    ## if wrist camera is available
     # wrist_image: Image.Image = Image.fromarray((torch.rand(224, 224, 3) * 255).numpy().astype('uint8'))
-    # wrist_image = image_fn([wrist_image]).unsqueeze(0)
-    # input_dict["hand_rgb"] = wrist_image
+    wrist_tensors = image_fn([wrist]).unsqueeze(0)
+    input_dict["hand_rgb"] = wrist_tensors
 
     for k, v in input_dict.items():
         if isinstance(v, torch.Tensor):

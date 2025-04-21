@@ -266,8 +266,10 @@ class LabDataset(Dataset):
                 if j < self.obs_n_frames:
                     if current_frame_idx < steps:
                         observation["image"] = episode["steps"][current_frame_idx]["observation"]["exterior_image_1_left"]
+                        observation["wrist"] = episode["steps"][current_frame_idx]["observation"]["exterior_image_1_wrist"]
                     else:
                         observation["image"] = np.zeros_like(traj["observation"]['image'][-1])
+                        observation["wrist"] = np.zeros_like(traj["observation"]['wrist'][-1])
 
                 if current_frame_idx == steps - 1:
                     action["terminate_episode"] = torch.tensor([1, 0, 0], dtype=torch.int32)
@@ -348,7 +350,7 @@ class LabDataset(Dataset):
                 for k in observation.keys():
                     traj["observation"][k].append(observation[k])
 
-                    if j == self.traj_length - 1 and k != 'image' and k != 'seg':
+                    if j == self.traj_length - 1 and k != 'image' and k != 'wrist' and k != 'seg':
                         traj["observation"][k] = torch.stack(traj["observation"][k], dim=0)
 
                 if j == self.obs_n_frames - 1 and 'image' in observation.keys():
@@ -359,6 +361,15 @@ class LabDataset(Dataset):
                     tmp_img_inp = self.data_transform(tmp_img_inp)
                     tmp_img_inp = tmp_img_inp.reshape(aaa.shape[0], aaa.shape[3], tmp_img_inp.shape[1], tmp_img_inp.shape[2])
                     traj["observation"]['image'] = tmp_img_inp
+
+                if j == self.obs_n_frames - 1 and 'wrist' in observation.keys():
+                    traj["observation"]['wrist'] = np.stack(traj["observation"]['wrist'], axis=0)
+
+                    aaa = traj["observation"]['wrist']
+                    tmp_img_inp = np.transpose(aaa, (1,2,0,3)).reshape(aaa.shape[1], aaa.shape[2], aaa.shape[0]*aaa.shape[3])
+                    tmp_img_inp = self.data_transform(tmp_img_inp)
+                    tmp_img_inp = tmp_img_inp.reshape(aaa.shape[0], aaa.shape[3], tmp_img_inp.shape[1], tmp_img_inp.shape[2])
+                    traj["observation"]['wrist'] = tmp_img_inp
 
                 for k in action.keys():
                     traj["action"][k].append(action[k])
@@ -494,8 +505,16 @@ class LabDataset(Dataset):
         fwd_mask = action_mask
         image_tensors = image_tensors[:, : self.window_size]
 
-        gripper_tensors = None
-        gripper_chunk = None
+        wrists = torch.stack([s["observation"]["wrist"] for s in sample]) # (4, 1, 26, 3, 224, 224)
+        wrists = wrists.squeeze(1) # (4, 26, 3, 224, 224)
+        B, T, C, H, W = wrists.shape
+        wrist_list = [
+            Image.fromarray((wrists[b, t] * 255).clamp(0, 255).permute(1, 2, 0).byte().numpy())
+            for b in range(B) for t in range(T)
+        ]
+        gripper_tensors = self.image_fn(wrist_list).view(B, T, C, H, W)
+        gripper_chunk = generate_chunck_data(gripper_tensors, self.window_size, self.fwd_pred_next_n)
+        gripper_tensors = image_tensors[:, : self.window_size]
 
         stacked_language = [f"In: What action should the robot take to {s['instruction'].lower()}?\nOut:" for s in sample]
         text_tensors, attention_mask = self.text_fn(stacked_language)
@@ -570,14 +589,14 @@ def main():
         data_path="/mnt/afs/share_data/xuyuan2/nips_pkl",
         image_fn=image_fn,
         tokenizer=model.model.tokenizer,
-        window_size=1,
-        fwd_pred_next_n=1,
+        window_size=16,
+        fwd_pred_next_n=10,
         stride=4,
-        include_target=1,
+        include_target=0,
         remove_small_diff=True,
         cache_in_memory=True,
         norm=False,
-        traj_per_episode=16,
+        traj_per_episode=1,
         is_training=True,
     )    
 
